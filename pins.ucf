@@ -1,0 +1,24 @@
+NET "CLK" LOC = "P55"; # 29.498MHZ
+
+NET "LED_VERDE" LOC = "P82";
+NET "LED_LARANJA" LOC = "P81";
+
+NET "button[0]" LOC = "P97";
+NET "button[1]" LOC = "P99";
+NET "button[0]" CLOCK_DEDICATED_ROUTE = FALSE;
+NET "button[1]" CLOCK_DEDICATED_ROUTE = FALSE;
+
+NET "digit[0]" LOC = "P112";
+NET "digit[1]" LOC = "P115";
+NET "digit[2]" LOC = "P117";
+NET "digit[3]" LOC = "P118";
+
+
+NET "seg[7]" LOC = "P98"; # DP
+NET "seg[0]" LOC = "P100";
+NET "seg[1]" LOC = "P102";
+NET "seg[2]" LOC = "P105";
+NET "seg[3]" LOC = "P111";
+NET "seg[4]" LOC = "P116";
+NET "seg[5]" LOC = "P114";
+NET "seg[6]" LOC = "P88";
