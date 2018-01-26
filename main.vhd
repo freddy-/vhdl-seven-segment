@@ -31,66 +31,68 @@ entity seven_segment_display_VHDL is
 		LED_VERDE: out std_logic := '1';
 		LED_LARANJA: out std_logic := '1';
 		digit: out std_logic_vector(3 downto 0) := "0000";
-		seg: out std_logic_vector(7 downto 0) := "00000000";
-		o_displayData: out std_logic_vector(15 downto 0) := "00000000"
+		seg: out std_logic_vector(7 downto 0) := "00000000"
 	);
 end seven_segment_display_VHDL;
 
 architecture Behavioral of seven_segment_display_VHDL is
-	signal r_one_second_prescaler : std_logic_vector(24 downto 0) := (others => '0');
 	signal r_counter: std_logic_vector(13 downto 0) := (others => '0');  
 	signal r_bcd: std_logic_vector(15 downto 0) := (others => '0');
-	signal r_displayData: std_logic_vector(15 downto 0) := (others => '0');
 	signal r_dv: std_logic := '0';
+	signal r_slowClk: std_logic := '0';
+	signal w_buttonUp: std_logic := '1';
+	signal w_buttonDown: std_logic := '1';
+
 begin 
 
-	-- 1110000100001101010010000
-
 	LED_VERDE <= r_dv;
-	LED_LARANJA <= '0';
-
-	-- TODO criar componente para manipular o debounce dos botoes
-	-- TODO criar um contador up/down com estes sinais
+	LED_LARANJA <= button(0);
 	
-	process (CLK)
-	begin
-		if(rising_edge(CLK)) then
-			if r_one_second_prescaler = "0011100001000011010100100" then
-				r_one_second_prescaler <= (others => '0');
-				r_counter <= r_counter + 1;
-				r_displayData <= r_bcd;
-			else
-				r_one_second_prescaler <= r_one_second_prescaler + 1;
-			end if;			
-		end if;
-	end process;
-	
+	-- Controle dos botões
 
-	-- COUNTER_LOAD_MACRO: Loadable variable counter implemented in a DSP48E
-	-- Virtex-5, Virtex-6, Spartan-6
-	-- Xilinx HDL Libraries Guide, version 11.2
---	COUNTER_LOAD_MACRO_inst : COUNTER_LOAD_MACRO
---	generic map (
---		COUNT_BY => X"000000000001", -- Count by value
---		DEVICE => "SPARTAN6", -- Target Device: "VIRTEX5", "VIRTEX6", "SPARTAN6"
---		WIDTH_DATA => 25) -- Counter output bus width, 1-48
---	port map (
---		Q => r_one_second_prescaler, -- Counter ouput, width determined by WIDTH_DATA generic
---		CLK => CLK, -- 1-bit clock input
---		CE => '1', -- 1-bit clock enable input
---		DIRECTION => '1', -- 1-bit up/down count direction input, high is count up
---		LOAD => '0', -- 1-bit active high load input
---		LOAD_DATA => (others => '0'), -- Counter load data, width determined by WIDTH_DATA generic => (others => '0')
---		RST => '0' -- 1-bit active high synchronous reset
---	);
-	-- End of COUNTER_LOAD_MACRO_inst instantiation
+	clkDiv_inst: entity work.clkDiv
+	PORT MAP(
+		i_clk => CLK,
+		o_slowClk => r_slowClk
+	);
+
+	debouncer_up_ins: entity work.debouncer
+	PORT MAP(
+		i_clk => r_slowClk,
+		i_raw => button(0),
+		o_clean => w_buttonUp
+	);
+
+	debouncer_down_ins: entity work.debouncer
+	PORT MAP(
+		i_clk => r_slowClk,
+		i_raw => button(1),
+		o_clean => w_buttonDown
+	);
+
+
+	-- Processo para incrementar e decrementar
+
+	up_down_inst : entity work.up_down_counter
+	GENERIC MAP (
+		g_OUTPUT_WIDTH => 14
+	)
+	PORT MAP (
+		i_CLK => CLK,
+		i_UP => w_buttonUp,
+		i_DOWN => w_buttonDown,
+		o_VALUE => r_counter
+	);
+
+
+	-- Controle do display 7 segmentos
 
 	bcd_inst : entity work.Binary_to_BCD
-	generic map (		
+	GENERIC MAP (		
 		g_INPUT_WIDTH => 14,
 		g_DECIMAL_DIGITS => 4
 	)
-	port map(		
+	PORT MAP (		
 		i_CLOCK => CLK,
 		i_START => '1',
 		i_BINARY => r_counter,
@@ -99,13 +101,11 @@ begin
 	);
 	
 	ssdc_inst : entity work.ssdc 
-	port map (
+	PORT MAP (
 		CLK,
-		r_displayData,
+		r_bcd,
 		digit,
 		seg
 	);
 	
-	o_displayData <= r_displayData;
-
 end Behavioral;
